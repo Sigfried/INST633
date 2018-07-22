@@ -23,6 +23,8 @@
          0 occurrences of AP as User/sender in spreadsheet
         42 occurrences of @AP as source in gephi edges
        108 occurrences of @AP as target in gephi edges
+       
+     3,321 unique @mentions in spreadsheet -- Not sure I trust this number, but if it’s correct, it’s a lot smaller than we’d expect
 
 Both-way links:
 
