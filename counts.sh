@@ -28,3 +28,6 @@ echo " occurrences of @AP as source in gephi edges"
 printf "%'6d" `awk -F, '{print $2}' roseanne_edges_07-06.csv| egrep -i '\bAP\b' | wc -l | perl -pe 'chomp'`
 echo " occurrences of @AP as target in gephi edges"
 
+echo
+printf "%'6d" `cat Copy\ of\ Roseanne\ Coding\ -\ A-J.tsv | perl -F'\t' -nae '$_ = $F[4]; @w = split /\s/; @w = grep(/^@/, @w); print join( "\n", @w), "\n";' | sort -u | wc -l | perl -pe 'chomp'`
+echo " unique @mentions in spreadsheet -- Not sure I trust this number, but if it’s correct, it’s a lot smaller than we’d expect"
