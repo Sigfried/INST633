@@ -11,7 +11,7 @@
     - [Sigfried's copy, sorted by tweet date](https://docs.google.com/spreadsheets/d/1IFPaBT7qKkyT0xTE8ifGHfRiTHZbeYcImyHvTrHNvi0)
  
  
- Stats (from running ./counts.sh)
+ Stats (from running [./counts.sh](https://github.com/Sigfried/INST633/blob/master/counts.sh))
 
     26,080 unique edge sources in gephi
      16,719 unique edge targets in gephi
@@ -23,3 +23,18 @@
          0 occurrences of AP as User/sender in spreadsheet
         42 occurrences of @AP as source in gephi edges
        108 occurrences of @AP as target in gephi edges
+
+Both-way links:
+
+    ⇒  python [count_sts.py](https://github.com/Sigfried/INST633/blob/master/count_sts.py)|head
+    Source,Target
+    @Sw33tss_,@BruceHiscott
+    @sueski93,@kplknup
+    @birdieglad,@pannlewis44
+    @Claudia28588043,@DaleEstey
+    @ChelseaClinton,@therealroseanne
+    @CityJohn,@HelenORahilly
+    @DarbaDee,@mitch_won
+    @DarbaDee,@vertigo7804
+    @dmason8652,@1angryhillbilly
+    ...
