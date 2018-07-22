@@ -37,4 +37,6 @@ Both-way links:
     @DarbaDee,@mitch_won
     @DarbaDee,@vertigo7804
     @dmason8652,@1angryhillbilly
-    ...
+    ... (656 edges)
+
+![gephi visualization](./both_way.png)
