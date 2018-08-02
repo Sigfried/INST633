@@ -32,42 +32,71 @@ class Node {
       return node
     }
     this.id = id
+    this.netwk = {
+      sources: [],
+      targets: [],
+    }
+    this.tweets = []
+    this.mentions = []
     Nodes[id] = this
-    this.data = []
-    this.addData(data)
   }
-  addData(data) {
-    this.data.push(data)
+  addTarget(id) {
+    this.netwk.targets.push(id)
+  }
+  addSource(id) {
+    this.netwk.sources.push(id)
+  }
+  addTweet(t) {
+    this.tweets.push(t)
+  }
+  addMention(t) {
+    this.mentions.push(t)
+  }
+  static vals() {
+    return _.values(Nodes)
   }
 }
 
 function processData({edges, codinga, codingb}) {
 
   _.each(edges, edge => {
-
-
-
-
-    let targets = _.get(ppl, [edge.Source, 'targets'], [])
-    _.set(ppl, [edge.Source, 'targets'], targets)
-    targets.push(edge.Target)
-
-    let sources = _.get(ppl, [edge.Target, 'sources'], [])
-    _.set(ppl, [edge.Target, 'sources'], sources)
-    sources.push(edge.Source)
+    let src = new Node(edge.Source)
+    src.addTarget(edge.Target)
+    let tgt = new Node(edge.Target)
+    tgt.addSource(edge.Source)
   })
+  //console.log({ Nodes, Nodeslen: _.values(Nodes).length})
+  //logstr(Node.vals().slice(200, 250), 2000)
+  //logstr(Nodes, 5000)
 
+  _.each(codinga, (rec, i) => {
+    let {'Assigned To':coder1, Code: code1,
+          Date:date, User:user, Tweet:tweet} = rec
+    let {'Assigned To':coder2, Code:code2} = codingb[i]
+    user = '@' + user
+    //let targets = tweet.split(/ /).filter(d=>d[0] === '@')
+    let splitb = tweet.split(/\b/)
+    let targets = 
+      splitb
+        .filter((tok, i) => (splitb[i-1]||'').match(/@$/))
+        .map(tok => '@' + tok)
+    let t = {coder1, code1, coder2, code2, date, user, tweet,targets, }
+
+    let node = new Node(user)
+    node.addTweet(t)
+
+    _.each(targets, target => {
+      let tgt = new Node(target)
+      tgt.addMention(t)
+    })
+  })
+  let sampleDumps = Node.vals().slice(300, 350).map(
+    n => n.tweets.map( t => console.log(t.tweet, '\n'))
+  )
   process.exit()
 
-
-
-  //let check = _.pickBy(ppl, d=>d.sources)
   //checkData({edges, codinga, codingb})
-  let nodes = _.map(edges.slice(200,250), edge => new Node(edge.Source, edge))
-  console.log({nodes, nodelen: nodes.length, Nodes, Nodeslen: _.values(Nodes).length})
-  _.each(Nodes, node => console.log(node))
-
-  let ppl = peopleFromEdges(edges)
+  /*
   let tweets = addTweets(ppl, codinga, codingb)
   console.log({
     'ppl':_.values(ppl).length, 
@@ -116,71 +145,10 @@ function processData({edges, codinga, codingb}) {
   //logstr(ppl, 2000)
   console.log(ppl)
   logstr(tweets, 500)
+  */
 }
 
-function addTweets(ppl, codinga, codingb) {
-  return _.map(codinga, (rec, i) => {
-    let {'Assigned To':coder1, Code: code1,
-          Date:date, User:user, Tweet:tweet} = rec
-    let {'Assigned To':coder2, Code:code2} = codingb[i]
-    user = '@' + user
-    //let targets = tweet.split(/ /).filter(d=>d[0] === '@')
-    let splitb = tweet.split(/\b/)
-    let targets = 
-      splitb
-        .filter((tok, i) => (splitb[i-1]||'').match(/@$/))
-        .map(tok => '@' + tok)
-    let t = {coder1, code1, coder2, code2, date, user, tweet,targets, }
 
-    //console.log(t)
-    if (ppl[user]) {
-      //t.user = ppl[user]
-      t.sourceInNetwork = true
-      ppl[user].tweetsAsSrc = ppl[user].tweetsAsSrc || []
-      ppl[user].tweetsAsSrc.push(t)
-    } else {
-      //let missing = _.get(usersMissingFromEdges, user, [])
-      //_.set(usersMissingFromEdges, user, missing)
-      //missing.push(t)
-      t.sourceInNetwork = false
-    }
-
-    t.targetsInNetwork = {true: 0, false: 0}
-    _.each(targets, target => {
-      let targetPpl = []
-      if (ppl[target]) {
-        //targetPpl.push(ppl[target])
-        t.targetsInNetwork.true++
-        ppl[target].tweetsAsTarget = ppl[target].tweetsAsTarget || []
-        ppl[target].tweetsAsTarget.push(t)
-      } else {
-        //let missing = _.get(targetsMissingFromEdges, target, [])
-        //_.set(targetsMissingFromEdges, target, missing)
-        //missing.push(t)
-        t.targetsInNetwork.false++
-      }
-      t.targetPpl = targetPpl
-    })
-    return t
-  })
-}
-
-function peopleFromEdges(edges) {
-  let ppl = {}
-  _.each(edges, edge => {
-    let targets = _.get(ppl, [edge.Source, 'targets'], [])
-    _.set(ppl, [edge.Source, 'targets'], targets)
-    targets.push(edge.Target)
-
-    let sources = _.get(ppl, [edge.Target, 'sources'], [])
-    _.set(ppl, [edge.Target, 'sources'], sources)
-    sources.push(edge.Source)
-  })
-  //let check = _.pickBy(ppl, d=>d.sources)
-  ////logstr(check, 2000)
-  //logstr(_.values(ppl).filter(d=>d.sources.length > 1), 2000)
-  return ppl
-}
 function checkData(things) {
   _.each(things,
     (v,k) => {
