@@ -55,6 +55,19 @@ class Node {
   static vals() {
     return _.values(Nodes)
   }
+  gephiNode() {
+    return {
+      ID: this.id,
+      tweets: this.tweets.length,
+      mentions: this.mentions.length,
+      ..._.mapKeys(
+        _.mapValues(_.groupBy(this.tweets.map(t=>t.code1)), v => v.length),
+        (v,k) => `code1_${k}`),
+      ..._.mapKeys(
+        _.mapValues(_.groupBy(this.tweets.map(t=>t.code2)), v => v.length),
+        (v,k) => `code2_${k}`),
+    }
+  }
 }
 
 function processData({edges, codinga, codingb}) {
@@ -90,9 +103,18 @@ function processData({edges, codinga, codingb}) {
       tgt.addMention(t)
     })
   })
+
+  // output nodes
+
+  let gephiNodes = _.values(Nodes).map(node => node.gephiNode())
+  console.log(gephiNodes)
+
+
+  /*
   let sampleDumps = Node.vals().slice(300, 350).map(
     n => n.tweets.map( t => console.log(t.tweet, '\n'))
   )
+  */
   process.exit()
 
   //checkData({edges, codinga, codingb})
