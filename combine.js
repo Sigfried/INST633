@@ -26,10 +26,12 @@ Promise.all([
     //gephiNodes.filter(n=>n.tweets > 1).map(d=>JSON.stringify(d,null,0)).forEach(d=>console.log(d,'\n'))
     writeNodes(gephiNodes)
 
+    /*
     _.filter(Nodes, (n,id)=>n.tweets.length > 1)
       .map((n,id) => console.log(
                         `${n.id}, ${n.tweets.length} tweets, targets: `,
                         JSON.stringify(n.tweets.map(t=>t.targets)), '\n'))
+    */
     writeEdges(_.flatten(_.values(Nodes).map(n=>n.gephiEdges())))
   }
 ).catch((err,a,b) => console.error('ERROR!', {err, a, b}))
@@ -73,7 +75,10 @@ class Node {
       ID: this.id,
       tweets: this.tweets.length,
       mentions: this.mentions.length,
+      pro: _.sum(this.tweets.map(t=>this.tweetScores(t).pro)),
     }
+    return rec
+    /*
     CODES.forEach(code => {
       this['raw-' + code] = [ this.tweets.map(t=>(t.code1 === code)+0),
                              this.tweets.map(t=>(t.code2 === code)+0) ]
@@ -86,8 +91,9 @@ class Node {
     rec.anti = (_.sum(this['Anti-Roseanne']) / denominator) || ''
     rec.neutral = (_.sum(this['Neutral']) / denominator) || ''
     return rec
+    */
   }
-  tweetScore(t) {
+  tweetScores(t) {
     let score = {
       agree: 0,
       pro: 0,
@@ -114,14 +120,28 @@ class Node {
     return score
   }
   gephiEdges() {
-    return _.flatten(this.tweets.map(
-      t => t.targets.map(tg => ({
-        Source: this.id, 
-        Target:tg, 
-        Date: t.date,
-        ...this.tweetScore(t)
+    let targets = {}
+    this.tweets.forEach(
+      t => {
+        let scores = this.tweetScores(t)
+        t.targets.forEach(
+          tgt => {
+            targets[tgt] = targets[tgt] || []
+            targets[tgt].push(scores.pro)
+          }
+        )
+      }
+    )
+    let edges = _.map(targets,
+      (proScores, tgt) => ({
+        Source: this.id,
+        Target: tgt,
+        //Date: t.date,
+        Weight: proScores.length,
+        pro: _.sum(proScores),
+        //...this.tweetScores(t)
       }))
-    ))
+    return edges
   }
 }
 const CODES = [
@@ -138,12 +158,14 @@ function writeNodes(nodes) {
       {id: 'ID', title: 'ID'},
       {id: 'tweets', title: 'tweets'},
       {id: 'mentions', title: 'mentions'},
+      {id: 'pro', title: 'pro'},
       //{id: 'pro', title: 'pro'},
       //{id: 'anti', title: 'anti'},
       //{id: 'neutral', title: 'neutral'},
     ],
   });
 
+  nodes = _.sortBy(nodes, n=>-n.pro)
   csvWriter.writeRecords(nodes)       // returns a promise
       .then(() => {
           console.log('...Done writing');
@@ -156,10 +178,11 @@ function writeEdges(edges) {
     header: [
       {id: 'Source', title: 'Source'},
       {id: 'Target', title: 'Target'},
-      {id: 'Date', title: 'Date'},
-      {id: 'agree', title: 'agree'},
-      {id: 'unclear', title: 'unclear'},
+      //{id: 'Date', title: 'Date'},
+      //{id: 'agree', title: 'agree'},
+      //{id: 'unclear', title: 'unclear'},
       {id: 'pro', title: 'pro'},
+      {id: 'Weight', title: 'Weight'},
     ],
   });
 
