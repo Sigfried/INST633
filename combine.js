@@ -87,9 +87,40 @@ class Node {
     rec.neutral = (_.sum(this['Neutral']) / denominator) || ''
     return rec
   }
+  tweetScore(t) {
+    let score = {
+      agree: 0,
+      pro: 0,
+      unclear: 0
+    }
+    if (t.code1 === t.code2) {
+      score.agree = 1
+      switch (t.code1) {
+        case 'Unclear/Unrelated':
+          score.unclear = 1
+          break
+        case 'Pro-Roseanne': 
+          score.pro = 1
+          break
+        case 'Anti-Roseanne': 
+          score.pro = -1
+          break
+        case 'Neutral': 
+          break
+        default:
+          throw new Error("didn't expect no code")
+      }
+    }
+    return score
+  }
   gephiEdges() {
     return _.flatten(this.tweets.map(
-      t => t.targets.map(tg => ({Source: this.id, Target:tg, Date: t.date}))
+      t => t.targets.map(tg => ({
+        Source: this.id, 
+        Target:tg, 
+        Date: t.date,
+        ...this.tweetScore(t)
+      }))
     ))
   }
 }
@@ -107,9 +138,9 @@ function writeNodes(nodes) {
       {id: 'ID', title: 'ID'},
       {id: 'tweets', title: 'tweets'},
       {id: 'mentions', title: 'mentions'},
-      {id: 'pro', title: 'pro'},
-      {id: 'anti', title: 'anti'},
-      {id: 'neutral', title: 'neutral'},
+      //{id: 'pro', title: 'pro'},
+      //{id: 'anti', title: 'anti'},
+      //{id: 'neutral', title: 'neutral'},
     ],
   });
 
@@ -126,6 +157,9 @@ function writeEdges(edges) {
       {id: 'Source', title: 'Source'},
       {id: 'Target', title: 'Target'},
       {id: 'Date', title: 'Date'},
+      {id: 'agree', title: 'agree'},
+      {id: 'unclear', title: 'unclear'},
+      {id: 'pro', title: 'pro'},
     ],
   });
 
