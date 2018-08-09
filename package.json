@@ -19,6 +19,7 @@
   "dependencies": {
     "csv-parser": "^1.12.1",
     "csv-writer": "^1.0.0",
+    "d3-dsv": "^1.0.8",
     "neat-csv": "^2.1.0",
     "should": "^13.2.3",
     "supergroup": "^1.1.9"

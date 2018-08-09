@@ -1,44 +1,11 @@
 'use strict'
+const dsv = require('d3-dsv')
+const os = require("os")
 var fs = require('fs')
 const neatCsv = require('neat-csv')
 const createCsvWriter = require('csv-writer').createObjectCsvWriter;
 const _ = require('supergroup')
 const should = require('should')
-
-const edgef = fs.createReadStream('./roseanne_edges_07-06.csv')
-const codingaf = fs.createReadStream('./Copy of Roseanne Coding - A-J.tsv')
-const codingbf = fs.createReadStream('./Copy of Roseanne Coding - K-Z.tsv')
-
-//let edges =[], codinga = [], codingb = []
-let Nodes = {}
-
-Promise.all([
-  neatCsv(edgef),
-  neatCsv(codingaf, {separator:'\t'}),
-  neatCsv(codingbf, {separator:'\t'}),
-]).then(
-  ([edges, codinga, codingb]) => {
-    processData({edges, codinga, codingb})
-
-    // output nodes
-    let gephiNodes = _.values(Nodes).map(node => node.gephiNode())
-    //console.log(gephiNodes.filter(n=>n.tweets > 1))
-    //gephiNodes.filter(n=>n.tweets > 1).map(d=>JSON.stringify(d,null,0)).forEach(d=>console.log(d,'\n'))
-    writeNodes(gephiNodes)
-
-    /*
-    _.filter(Nodes, (n,id)=>n.tweets.length > 1)
-      .map((n,id) => console.log(
-                        `${n.id}, ${n.tweets.length} tweets, targets: `,
-                        JSON.stringify(n.tweets.map(t=>t.targets)), '\n'))
-    */
-    writeEdges(_.flatten(_.values(Nodes).map(n=>n.gephiEdges())))
-  }
-).catch((err,a,b) => console.error('ERROR!', {err, a, b}))
-
-let usersMissingFromEdges = {}
-let targetsMissingFromEdges = {}
-let notMissing = 0
 
 class Node {
   constructor(id) {
@@ -144,12 +111,43 @@ class Node {
     return edges
   }
 }
+const edgef = './roseanne_edges_07-06.csv'
+const codingaf = './Copy of Roseanne Coding - A-J.tsv'
+const codingbf = './Copy of Roseanne Coding - K-Z.tsv'
+
+const edges = dsv.tsvParse(fs.readFileSync(edgef, 'utf8'))
+const codinga = dsv.tsvParse(fs.readFileSync(codingaf, 'utf8'))
+const codingb = dsv.tsvParse(fs.readFileSync(codingbf, 'utf8'))
+
+
+let Nodes = {}
+let usersMissingFromEdges = {}
+let targetsMissingFromEdges = {}
+let notMissing = 0
+
 const CODES = [
       'Pro-Roseanne',
       'Anti-Roseanne',
       'Neutral',
       'Unclear/Unrelated',
 ]
+
+processData({edges, codinga, codingb})
+
+// output nodes
+let gephiNodes = _.values(Nodes).map(node => node.gephiNode())
+//console.log(gephiNodes.filter(n=>n.tweets > 1))
+//gephiNodes.filter(n=>n.tweets > 1).map(d=>JSON.stringify(d,null,0)).forEach(d=>console.log(d,'\n'))
+writeNodes(gephiNodes)
+
+/*
+_.filter(Nodes, (n,id)=>n.tweets.length > 1)
+  .map((n,id) => console.log(
+                    `${n.id}, ${n.tweets.length} tweets, targets: `,
+                    JSON.stringify(n.tweets.map(t=>t.targets)), '\n'))
+*/
+writeEdges(_.flatten(_.values(Nodes).map(n=>n.gephiEdges())))
+
 function writeNodes(nodes) {
   //console.log('weird?', JSON.stringify(nodes[0]))
   const csvWriter = createCsvWriter({
@@ -194,6 +192,7 @@ function writeEdges(edges) {
 
 function processData({edges, codinga, codingb}) {
 
+  //  SKIPPING NETWORK EDGES FOR NOW
   if (false) {    // skip netw stuff for now
     _.each(edges, edge => {
       let src = new Node(edge.Source)
@@ -206,18 +205,21 @@ function processData({edges, codinga, codingb}) {
     //logstr(Nodes, 5000)
   }
 
-  _.each(codinga, (rec, i) => {
+  const combined_coded_tweets = _.map(codinga, (rec, i) => {
     let {'Assigned To':coder1, Code: code1,
           Date:date, User:user, Tweet:tweet} = rec
     let {'Assigned To':coder2, Code:code2} = codingb[i]
+    if (code1 === "") code1 = code2  // make missing codes agree
+    if (code2 === "") code2 = code1
     user = '@' + user
     //let targets = tweet.split(/ /).filter(d=>d[0] === '@')
+    //console.log(`[${tweet}]`)
     let splitb = tweet.split(/\b/)
     let targets = 
       splitb
         .filter((tok, i) => (splitb[i-1]||'').match(/@$/))
         .map(tok => '@' + tok)
-    let t = {coder1, code1, coder2, code2, date, user, tweet,targets, }
+    let t = {coder1, code1, coder2, code2, date, user, targets, tweet,}
 
     let node = new Node(user)
     node.addTweet(t)
@@ -226,8 +228,37 @@ function processData({edges, codinga, codingb}) {
       let tgt = new Node(target)
       tgt.addMention(t)
     })
+    return t
   })
+  //outNodes.write("wtf?\n\n")
+  /*
+  const out = [
+    _.keys(combined_coded_tweets[0]) .join('\t'),
+  ].concat( combined_coded_tweets.map(d => _.values(d).join('\t')))
+  console.log(out.length, out.join('\n').substr(0,2000))
 
+  fs.writeFileSync('./coded-only/combined-coded-tweets.tsv', out.join('\n'))
+  */
+  const csvWriter = createCsvWriter({
+    path: './coded-only/combined-coded-tweets.tsv',
+    header: [
+      {id: 'coder1', title: 'coder1'},
+      {id: 'code1', title: 'code1'},
+      {id: 'coder2', title: 'coder2'},
+      {id: 'code2', title: 'code2'},
+      {id: 'date', title: 'date'},
+      {id: 'user', title: 'user'},
+      {id: 'targets', title: 'targets'},
+      {id: 'tweet', title: 'tweet'},
+    ],
+  });
+  csvWriter.writeRecords(combined_coded_tweets)       // returns a promise
+      .then(() => {
+        console.log('...Done writing');
+        process.exit()
+      });
+    /*
+      */
 }
 
 
