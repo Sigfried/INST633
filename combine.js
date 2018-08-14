@@ -42,8 +42,9 @@ class Node {
       ID: this.id,
       tweets: this.tweets.length,
       mentions: this.mentions.length,
-      pro: _.sum(this.tweets.map(t=>this.tweetScores(t).pro)),
+      pro: _.mean(this.tweets.map(t=>this.tweetScores(t).pro)),
     }
+    if (rec.pro === Infinity) rec.pro = 3
     return rec
     /*
     CODES.forEach(code => {
@@ -63,7 +64,7 @@ class Node {
   tweetScores(t) {
     let score = {
       agree: 0,
-      pro: 0,
+      pro: 3,
       unclear: 0
     }
     if (t.code1 === t.code2) {
@@ -73,10 +74,10 @@ class Node {
           score.unclear = 1
           break
         case 'Pro-Roseanne': 
-          score.pro = 1
+          score.pro = 5
           break
         case 'Anti-Roseanne': 
-          score.pro = -1
+          score.pro = 1
           break
         case 'Neutral': 
           break
@@ -105,9 +106,10 @@ class Node {
         Target: tgt,
         //Date: t.date,
         Weight: proScores.length,
-        pro: _.sum(proScores),
+        pro: _.mean(proScores),
         //...this.tweetScores(t)
       }))
+    if (edges.pro === Infinity) edges.pro = 3
     return edges
   }
 }
