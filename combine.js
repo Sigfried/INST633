@@ -42,9 +42,23 @@ class Node {
       ID: this.id,
       tweets: this.tweets.length,
       mentions: this.mentions.length,
-      pro: _.mean(this.tweets.map(t=>this.tweetScores(t).pro)),
+      pro: this.tweets.length
+            ? _.mean(this.tweets.map(tweet=>this.tweetScores(tweet).pro))
+            : '',
     }
-    if (rec.pro === Infinity) rec.pro = 3
+    let group
+    if (rec.pro === '') {
+      group = ''
+    } else if (rec.pro < 3) {
+      group = 'anti'
+    } else if (rec.pro > 3) {
+      group = 'pro'
+    } else if (rec.pro === 3) {
+      group = 'unclear/neutral'
+    } else {
+      throw new Error('weird')
+    }
+    rec.group = group
     return rec
     /*
     CODES.forEach(code => {
@@ -64,13 +78,14 @@ class Node {
   tweetScores(t) {
     let score = {
       agree: 0,
-      pro: 3,
+      pro: null,
       unclear: 0
     }
     if (t.code1 === t.code2) {
       score.agree = 1
       switch (t.code1) {
         case 'Unclear/Unrelated':
+          score.pro = 3
           score.unclear = 1
           break
         case 'Pro-Roseanne': 
@@ -80,6 +95,7 @@ class Node {
           score.pro = 1
           break
         case 'Neutral': 
+          score.pro = 3
           break
         default:
           throw new Error("didn't expect no code")
@@ -89,31 +105,32 @@ class Node {
   }
   gephiEdges() {
     let targets = {}
-    this.tweets.forEach(
-      t => {
-        let scores = this.tweetScores(t)
-        t.targets.forEach(
-          tgt => {
-            targets[tgt] = targets[tgt] || []
-            targets[tgt].push(scores.pro)
-          }
-        )
-      }
+    this.edges = _.flatten(
+      this.tweets.map(
+        tweet => {
+          tweet.scores = this.tweetScores(tweet)
+          tweet.edges = tweet.targets.map(
+            tgt => {
+              let edge = {
+                Source: this.id,
+                Target: tgt,
+                Date: tweet.date,
+                Weight: 1,
+                pro: tweet.scores.pro,
+                agree: tweet.scores.agree,
+                unclear: tweet.scores.unclear,
+              }
+              return edge
+            }
+          )
+          return tweet.edges
+        }
+      )
     )
-    let edges = _.map(targets,
-      (proScores, tgt) => ({
-        Source: this.id,
-        Target: tgt,
-        //Date: t.date,
-        Weight: proScores.length,
-        pro: _.mean(proScores),
-        //...this.tweetScores(t)
-      }))
-    if (edges.pro === Infinity) edges.pro = 3
-    return edges
+    return this.edges
   }
 }
-const edgef = './roseanne_edges_07-06.csv'
+const edgef = './Q2-edges.csv'
 const codingaf = './Copy of Roseanne Coding - A-J.tsv'
 const codingbf = './Copy of Roseanne Coding - K-Z.tsv'
 
@@ -159,7 +176,7 @@ function writeNodes(nodes) {
       {id: 'tweets', title: 'tweets'},
       {id: 'mentions', title: 'mentions'},
       {id: 'pro', title: 'pro'},
-      //{id: 'pro', title: 'pro'},
+      {id: 'group', title: 'group'},
       //{id: 'anti', title: 'anti'},
       //{id: 'neutral', title: 'neutral'},
     ],
@@ -178,9 +195,9 @@ function writeEdges(edges) {
     header: [
       {id: 'Source', title: 'Source'},
       {id: 'Target', title: 'Target'},
-      //{id: 'Date', title: 'Date'},
-      //{id: 'agree', title: 'agree'},
-      //{id: 'unclear', title: 'unclear'},
+      {id: 'Date', title: 'Date'},
+      {id: 'agree', title: 'agree'},
+      {id: 'unclear', title: 'unclear'},
       {id: 'pro', title: 'pro'},
       {id: 'Weight', title: 'Weight'},
     ],
